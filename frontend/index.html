@@ -89,6 +89,14 @@
   <p><a href="#" onclick="mostrarCadastro()" style="color: green;">Não tem conta? Cadastre-se</a></p>
 </div>
 
+<div id="area-secreta" style="display: none;">
+  
+  <img src="https://static.wikia.nocookie.net/the-walten-files-new/images/4/47/HDRose%21.png/revision/latest/scale-to-width-down/1000?cb=20240119233739" width="250">
+  <br><br>
+  <button onclick="trocarpalavra()">Mudar Texto Mágico</button>
+
+</div>
+
 <div id="area-cadastro" style="display: none;">
   <h2 id="titulo-cadastro">Crie sua conta</h2>
   <p id="escolher-mrsnome">Escolha um Nome de Usuário:</p>
@@ -143,27 +151,47 @@
     }
   }
 
-  function entrar() {
+  async function entrar() {
+  let nomeDigitado = document.getElementById("campo-nome").value;
+  let senhaDigitada = document.getElementById("campo-senha").value;
 
-    let nomeDigitado = document.getElementById("campo-nome").value;
-    let senhaDigitada = document.getElementById("campo-senha").value;
+  if (!nomeDigitado || !senhaDigitada) {
+    mostrarAviso("Preencha todos os Campos");
+    return;
+  }
 
-    if (!nomeDigitado || !senhaDigitada) {
-      mostrarAviso("Preencha todos os Campos");
-      return;
+  // --- BATENDO NA PORTA DO LOGIN ---
+  try {
+    let resposta = await fetch("http://127.0.0.1:5000/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nomeDigitado, senha: senhaDigitada })
+    });
+
+    let dados = await resposta.json();
+
+    if (dados.sucesso === true) {
+      mostrarAviso(dados.mensagem); // Bem-vindo!
+    } else {
+      mostrarAviso(dados.mensagem); // Senha incorreta!
     }
 
-    let nomeSalvo = localStorage.getItem("nomeSalvo");
-    let senhaSalva = localStorage.getItem("senhaSalva");
+  } catch (erro) {
+    mostrarAviso("Servidor offline ou erro de conexão.");
+  }
 
-    if (nomeDigitado === nomeSalvo && senhaDigitada === senhaSalva) {
-
-      mostrarAviso("Bem vindo de volta, " + nomeDigitado + "!");
+    if (dados.sucesso === true) {
+    
+    mostrarAviso(dados.mensagem); 
+    
+    // A mágica visual acontece aqui:
+    document.getElementById("area-login").style.display = "none";
+    document.getElementById("area-secreta").style.display = "block";
     
     } else {
-      mostrarAviso("nome ou senha incorretos, verifique seus dados ou cadastre-se.");
+    mostrarAviso(dados.mensagem);
     }
-  }
+}
 
   function mostrarCadastro() {
   document.getElementById("area-login").style.display = "none";
@@ -177,31 +205,39 @@ function mostrarLogin() {
 
 }
 
-function cadastrar() {
+async function cadastrar() {
   let nomeCriado = document.getElementById("novo-nome").value;
   let senhaCriada = document.getElementById("nova-senha").value;
 
+  // Suas validações continuam aqui (tamanho da senha, etc)...
   if (!nomeCriado || !senhaCriada) {
     mostrarAviso("Nome de usuário e senha obrigatórios");
     return;
   }
 
-  if (nomeCriado.length < 3) {
-    mostrarAviso("Nome de usuário deve ter ao minimo 3 caracteres");
-    return;
+  // --- A MÁGICA DA CONEXÃO AQUI ---
+  try {
+    // Dispara a requisição POST para o Python
+    let resposta = await fetch("http://127.0.0.1:5000/cadastrar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nomeCriado, senha: senhaCriada }) // Empacota os dados em JSON
+    });
+
+    // Desempacota a resposta do Python
+    let dados = await resposta.json();
+
+    // O Python manda "dados.sucesso" como True ou False. Vamos checar:
+    if (dados.sucesso === true) {
+      mostrarAviso(dados.mensagem);
+      mostrarLogin(); // Volta pra tela de login
+    } else {
+      mostrarAviso(dados.mensagem); // Ex: "Esse usuário já existe!"
+    }
+
+  } catch (erro) {
+    mostrarAviso("Erro ao tentar conectar com o servidor.");
   }
-
-  if (senhaCriada.length < 6) {
-    mostrarAviso("Senha deve ter ao minimo 6 caracteres");
-    return;
-  }
-
-  localStorage.setItem("nomeSalvo", nomeCriado);
-  localStorage.setItem("senhaSalva", senhaCriada);
-
-  mostrarAviso("Conta criada! Volte para o login.");
-  mostrarLogin();
-
 }
 
   function mostrarAviso(mensagem) {
