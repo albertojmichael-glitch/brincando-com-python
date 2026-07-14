@@ -1,2 +1,0 @@
-# brincando-com-python
-autoexplicativo
