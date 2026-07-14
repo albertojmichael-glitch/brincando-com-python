@@ -1,0 +1,75 @@
+body {
+  background-color: lightyellow;
+  text-align: center;
+  font-family: 'times', serif;
+}
+
+h1 {
+  color: red;
+  font-size: 40px;
+}
+
+p {
+  color: green;
+  font-size: 30px;
+}
+
+button {
+    color: white;
+    background-color: brown;
+    font-size: 40px;
+
+    padding: 15px 40px;
+    border-radius: 15px;
+    border: none;
+    cursor: pointer;
+  }
+
+button:hover {
+  background-color: red;
+  transform: scale(1.05);
+}
+
+#btn-modo-escuro {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+img {
+  width: 250px;
+  border-radius: 15px;
+  margin-top: 20px;
+}
+
+input {
+  display: block;
+  margin: 0 auto 15px auto;
+  padding: 10px;
+  font-size: 18px;
+  border-radius: 8px;
+  border: 2px solid #ccc;
+  width: 250px;
+}
+
+#caixa-aviso {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0px 5px 20px rgba(0,0,0,0.6);
+    z-index: 1000;
+    text-align: center;
+  }
+
+#caixa-aviso p {
+  color: black;
+  font-size: 22px;
+}
