@@ -12,6 +12,10 @@ function trocarpalavra() {
       document.getElementById("green-green-grass-of-home").style.color = "white";
       document.getElementById("titulo-login").style.color = "white";
       document.getElementById("titulo-cadastro").style.color = "white";
+      document.getElementById("usuario-nome").style.color = "white";
+      document.getElementById("senho-senha").style.color = "white";
+      document.getElementById("escolher-mrsnome").style.color = "CCCCCC";
+      document.getElementById("escolher-mrssenha").style.color = "CCCCCC";
 
       botaoTema.innerHTML = "☀️";
     } else {
