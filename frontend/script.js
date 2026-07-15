@@ -49,28 +49,23 @@ async function entrar() {
 
     let dados = await resposta.json();
 
+    // TUDO JUNTO AQUI DENTRO DO TRY!
     if (dados.sucesso === true) {
-      mostrarAviso(dados.mensagem); // Bem-vindo!
+      // 1. Mostra o aviso de boas-vindas
+      mostrarAviso(dados.mensagem); 
+      
+      // 2. Esconde o login e mostra a área secreta!
+      document.getElementById("area-login").style.display = "none";
+      document.getElementById("area-secreta").style.display = "block";
+      
     } else {
-      mostrarAviso(dados.mensagem); // Senha incorreta!
+      // Se a senha estiver errada
+      mostrarAviso(dados.mensagem); 
     }
 
   } catch (erro) {
     mostrarAviso("Servidor offline ou erro de conexão.");
   }
-
-  
-    if (dados.sucesso === true) {
-    
-    mostrarAviso(dados.mensagem); 
-    
-    // A mágica visual acontece aqui:
-    document.getElementById("area-login").style.display = "none";
-    document.getElementById("area-secreta").style.display = "block";
-    
-    } else {
-    mostrarAviso(dados.mensagem);
-    }
 }
 
   function mostrarCadastro() {
