@@ -176,7 +176,7 @@
         JS.global.addEventListener("keydown") do |event|
           key = event[:key].to_s.downcase
           if key == "p"
-            JS.global[:_pong_paused] = !JS.global[:_pong_paused]
+            $pong_paused = !$pong_paused
           else
             game.update_keys(key, true)
           end
@@ -189,14 +189,16 @@
 
         # Patch v3: Safe start_game
         def start_game(game, document, menu, game_screen, score_el, diff, right_human: false)
-          # Limpa intervalo anterior para evitar múltiplos timers
-          JS.global.clearInterval(JS.global[:_pong_interval_id]) if JS.global[:_pong_interval_id]
+          # Limpa intervalo anterior usando a variável Ruby
+          JS.global.clearInterval($pong_interval_id) if $pong_interval_id
 
           game.difficulty = diff
           game.right_human = right_human
           game.score_left = 0
           game.score_right = 0
-          JS.global[:_pong_paused] = false
+          
+          # Garante que começa despausado
+          $pong_paused = false
 
           # Desabilita e esconde botões
           document.querySelectorAll("button").forEach do |btn| 
@@ -207,7 +209,7 @@
 
           # 60 FPS Loop (~16ms)
           interval_id = JS.global.setInterval(-> {
-            if JS.global[:_pong_paused]
+            if $pong_paused
               score_el[:innerText] = "[PAUSED] Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
             else
               game.update
@@ -216,7 +218,8 @@
             end
           }, 16)
 
-          JS.global[:_pong_interval_id] = interval_id
+          # Salva o ID na variável Ruby
+          $pong_interval_id = interval_id
         end
 
         document.getElementById("btn-facil").addEventListener("click") { start_game(game, document, menu, game_screen, score_el, :facil) }
