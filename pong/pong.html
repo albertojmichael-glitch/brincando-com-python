@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>ASCII Pong - Ultimate Edition</title>
+    <title>ASCII Pong - 60FPS Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/ruby-3_2-wasm-wasi@2.1.0/dist/browser.script.iife.js"></script>
     <style>
         body {
@@ -15,12 +15,30 @@
             height: 100vh;
             margin: 0;
             font-family: monospace;
+            overflow: hidden;
         }
+        
+        /* Placar fora do ASCII */
+        #scoreboard {
+            font-size: 40px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            justify-content: space-between;
+            padding: 0 50px;
+            box-sizing: border-box;
+        }
+
         .menu {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
+            justify-content: center;
         }
+
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -32,99 +50,192 @@
             font-weight: bold;
         }
         button:hover { background: #fff; }
+        button:disabled { background: #555; color: #222; cursor: not-allowed; }
+
         #game-screen {
             font-size: 18px;
             line-height: 1;
             display: none;
+        }
+
+        #status-msg {
+            color: #ffdc00;
+            margin-top: 10px;
+            height: 20px;
         }
     </style>
 </head>
 <body>
 
     <div class="menu" id="menu">
-        <button id="btn-facil">Fácil</button>
-        <button id="btn-normal">Normal</button>
-        <button id="btn-hospicio">Hospício</button>
+        <button class="start-btn" data-mode="facil">1P: Fácil</button>
+        <button class="start-btn" data-mode="normal">1P: Normal</button>
+        <button class="start-btn" data-mode="hospicio">1P: Hospício</button>
+        <button class="start-btn" data-mode="2p">2 Players</button>
     </div>
+
+    <!-- Placar em HTML -->
+    <div id="scoreboard">
+        <span id="score-left">0</span>
+        <span id="score-right">0</span>
+    </div>
+
     <pre id="game-screen"></pre>
+    <div id="status-msg">Pressione 'P' para pausar</div>
+
+    <!-- Script de som simples em JS -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'bounce') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'score') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+    </script>
 
     <script type="text/ruby">
         require 'js'
 
         class ASCIIPong
-          attr_accessor :width, :height, :paddle_left, :paddle_right, :score_left, :score_right, :difficulty
+          attr_accessor :width, :height, :score_left, :score_right, :mode, :paused
           
           def initialize
-            @width = 50
-            @height = 20
-            @paddle_left = @height / 2
-            @paddle_right = @height / 2
+            @width = 60
+            @height = 25
+            
+            # Usando floats para permitir 60fps sem a bola voar na velocidade da luz
+            @paddle_left = @height / 2.0
+            @paddle_right = @height / 2.0
+            @paddle_speed = 0.6
+            
             @score_left = 0
             @score_right = 0
-            @difficulty = :normal
-            @keys = { "w" => false, "s" => false }
+            @mode = "normal"
+            @paused = false
+            
+            @keys = {}
+            @base_ball_speed = 0.3
             reset_ball
           end
 
           def update_keys(key, is_pressed)
-            @keys[key.downcase] = is_pressed if @keys.key?(key.downcase)
+            @keys[key.downcase] = is_pressed
+          end
+
+          def toggle_pause
+            @paused = !@paused
           end
 
           def reset_ball
-            @ball_x = @width / 2
-            @ball_y = @height / 2
-            @ball_dx = [1, -1].sample
-            @ball_dy = [1, -1].sample
+            @ball_x = @width / 2.0
+            @ball_y = @height / 2.0
+            
+            # Direção aleatória inicial, mantendo a velocidade base
+            dir_x = [1, -1].sample
+            dir_y = [1, -1].sample
+            @ball_dx = @base_ball_speed * dir_x
+            @ball_dy = @base_ball_speed * dir_y
           end
 
           def update
-            @paddle_left -= 1 if @keys["w"] && @paddle_left > 1
-            @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 2
+            return if @paused
 
-            chance_de_agir = case @difficulty
-                             when :facil then 0.25
-                             when :normal then 0.65
-                             when :hospicio then 1.0
-                             else 0.65
-                             end
+            # --- Movimento do Player 1 (W/S) ---
+            @paddle_left -= @paddle_speed if @keys["w"] && @paddle_left > 1.5
+            @paddle_left += @paddle_speed if @keys["s"] && @paddle_left < @height - 2.5
 
-            if rand <= chance_de_agir
-              if @ball_y > @paddle_right && @paddle_right < @height - 2
-                @paddle_right += 1
-              elsif @ball_y < @paddle_right && @paddle_right > 1
-                @paddle_right -= 1
+            # --- Movimento Player 2 ou IA ---
+            if @mode == "2p"
+              @paddle_right -= @paddle_speed if @keys["arrowup"] && @paddle_right > 1.5
+              @paddle_right += @paddle_speed if @keys["arrowdown"] && @paddle_right < @height - 2.5
+            else
+              # Lógica da IA com base na dificuldade
+              chance = case @mode
+                       when "facil" then 0.15
+                       when "normal" then 0.40
+                       when "hospicio" then 0.95
+                       else 0.40
+                       end
+
+              if rand <= chance
+                if @ball_y > @paddle_right && @paddle_right < @height - 2.5
+                  @paddle_right += @paddle_speed * 0.8 # IA move um pouco mais devagar
+                elsif @ball_y < @paddle_right && @paddle_right > 1.5
+                  @paddle_right -= @paddle_speed * 0.8
+                end
               end
             end
 
+            # --- Movimento e Colisão da Bola ---
             next_x = @ball_x + @ball_dx
             next_y = @ball_y + @ball_dy
 
+            # Bater no teto/chão
             if next_y <= 0 || next_y >= @height - 1
               @ball_dy *= -1
-              next_y = @ball_y + @ball_dy 
+              next_y = @ball_y + @ball_dy
+              JS.global.playSound('bounce')
             end
 
-            if next_x == 1 && next_y.between?(@paddle_left - 1, @paddle_left + 1)
-              @ball_dx *= -1
-              next_x = 2 
-            elsif next_x == @width - 2 && next_y.between?(@paddle_right - 1, @paddle_right + 1)
-              @ball_dx *= -1
-              next_x = @width - 3 
+            # Checar colisão com as raquetes usando posições arredondadas para o grid
+            hit_left = (next_x.round <= 2) && (next_y.round.between?(@paddle_left.round - 2, @paddle_left.round + 2))
+            hit_right = (next_x.round >= @width - 3) && (next_y.round.between?(@paddle_right.round - 2, @paddle_right.round + 2))
+
+            if hit_left || hit_right
+              @ball_dx *= -1.10 # Aumenta a velocidade em 10% a cada rebatida (Progressive Speed)
+              @ball_dx = @ball_dx.clamp(-1.2, 1.2) # Limite de velocidade para não bugar o grid
+              
+              next_x = hit_left ? 3.0 : @width - 4.0
+              JS.global.playSound('bounce')
             end
 
             @ball_x = next_x
             @ball_y = next_y
 
+            # --- Pontuação ---
             if @ball_x < 0
               @score_right += 1
+              JS.global.playSound('score')
+              update_dom_scores
               reset_ball
             elsif @ball_x >= @width
               @score_left += 1
+              JS.global.playSound('score')
+              update_dom_scores
               reset_ball
             end
           end
 
+          def update_dom_scores
+            document = JS.global[:document]
+            document.getElementById("score-left")[:innerText] = @score_left.to_s
+            document.getElementById("score-right")[:innerText] = @score_right.to_s
+          end
+
           def render
+            # Usa variáveis locais para não recalcular a cada iteração
+            bx = @ball_x.round
+            by = @ball_y.round
+            pl = @paddle_left.round
+            pr = @paddle_right.round
+
             screen = Array.new(@height) { Array.new(@width, ' ') }
 
             @height.times do |y|
@@ -137,55 +248,79 @@
               end
             end
 
-            screen[2][@width / 4] = @score_left.to_s
-            screen[2][3 * @width / 4] = @score_right.to_s
-
-            (-1..1).each do |dy|
-              screen[@paddle_left + dy][1] = ']' if (@paddle_left + dy).between?(0, @height-1)
-              screen[@paddle_right + dy][@width-2] = '[' if (@paddle_right + dy).between?(0, @height-1)
+            # Raquetes maiores (tamanho 5)
+            (-2..2).each do |dy|
+              screen[pl + dy][1] = ']' if (pl + dy).between?(0, @height-1)
+              screen[pr + dy][@width-2] = '[' if (pr + dy).between?(0, @height-1)
             end
 
-            screen[@ball_y][@ball_x] = 'O' if @ball_y.between?(0, @height-1) && @ball_x.between?(0, @width-1)
+            # Bola
+            screen[by][bx] = 'O' if by.between?(0, @height-1) && bx.between?(0, @width-1)
 
             screen.map(&:join).join("\n")
           end
         end
 
+        # --- Setup do Jogo ---
         document = JS.global[:document]
-        menu = document.getElementById("menu")
         game_screen = document.getElementById("game-screen")
-
+        scoreboard = document.getElementById("scoreboard")
+        status_msg = document.getElementById("status-msg")
+        
         game = ASCIIPong.new
+        game_loop_id = nil # Guarda o ID do loop para evitar duplicações
 
+        # Controles
         JS.global.addEventListener("keydown") do |event|
-          game.update_keys(event[:key].to_s, true)
+          key = event[:key].to_s
+          if key.downcase == "p"
+            game.toggle_pause
+            status_msg[:innerText] = game.paused ? "JOGO PAUSADO - Pressione 'P' para voltar" : "Pressione 'P' para pausar"
+          else
+            game.update_keys(key, true)
+          end
         end
 
         JS.global.addEventListener("keyup") do |event|
           game.update_keys(event[:key].to_s, false)
         end
 
-        def start_game(game, document, menu, game_screen, diff)
-          game.difficulty = diff
-          menu[:style][:display] = "none"
+        # Iniciar jogo ao clicar nos botões
+        buttons = document.querySelectorAll(".start-btn")
+        
+        start_game_func = ->(mode) {
+          # Evitar múltiplos loops: se já existe um, limpa antes
+          JS.global.clearInterval(game_loop_id) if game_loop_id
+
+          game.mode = mode
+          game.score_left = 0
+          game.score_right = 0
+          game.update_dom_scores
+          game.paused = false
+          status_msg[:innerText] = "Pressione 'P' para pausar"
+
+          # UX: Desabilita e esconde os botões do menu
+          buttons.forEach do |btn| 
+            btn[:disabled] = true
+            btn[:style][:display] = "none" 
+          end
+          
+          scoreboard[:style][:display] = "flex"
           game_screen[:style][:display] = "block"
 
-          JS.global.setInterval(-> {
+          # Rodando a ~60 FPS (1000 / 60 ≈ 16.6 ms)
+          game_loop_id = JS.global.setInterval(-> {
             game.update
             game_screen[:innerText] = game.render
-          }, 60)
-        end
+          }, 16)
+        }
 
-        document.getElementById("btn-facil").addEventListener("click") do
-          start_game(game, document, menu, game_screen, :facil)
-        end
-
-        document.getElementById("btn-normal").addEventListener("click") do
-          start_game(game, document, menu, game_screen, :normal)
-        end
-
-        document.getElementById("btn-hospicio").addEventListener("click") do
-          start_game(game, document, menu, game_screen, :hospicio)
+        # Atribuir evento a cada botão do menu
+        buttons.forEach do |btn|
+          btn.addEventListener("click") do |e|
+            mode = e[:target][:dataset][:mode].to_s
+            start_game_func.call(mode)
+          end
         end
     </script>
 </body>
