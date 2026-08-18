@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ASCII Pong - Ultimate Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/ruby-3_2-wasm-wasi@2.1.0/dist/browser.script.iife.js"></script>
+    <style>
+        body {
+            background-color: #001f3f;
+            color: #7FDBFF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: monospace;
+        }
+        .menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #7FDBFF;
+            color: #001f3f;
+            border: none;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        button:hover { background: #fff; }
+        #game-screen {
+            font-size: 18px;
+            line-height: 1;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="menu" id="menu">
+        <button id="btn-facil">Fácil</button>
+        <button id="btn-normal">Normal</button>
+        <button id="btn-hospicio">Hospício</button>
+    </div>
+    <pre id="game-screen"></pre>
+
+    <script type="text/ruby">
+        require 'js'
+
+        class ASCIIPong
+          attr_accessor :width, :height, :paddle_left, :paddle_right, :score_left, :score_right, :difficulty
+          
+          def initialize
+            @width = 50
+            @height = 20
+            @paddle_left = @height / 2
+            @paddle_right = @height / 2
+            @score_left = 0
+            @score_right = 0
+            @difficulty = :normal
+            @keys = { "w" => false, "s" => false }
+            reset_ball
+          end
+
+          def update_keys(key, is_pressed)
+            @keys[key.downcase] = is_pressed if @keys.key?(key.downcase)
+          end
+
+          def reset_ball
+            @ball_x = @width / 2
+            @ball_y = @height / 2
+            @ball_dx = [1, -1].sample
+            @ball_dy = [1, -1].sample
+          end
+
+          def update
+            @paddle_left -= 1 if @keys["w"] && @paddle_left > 1
+            @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 2
+
+            chance_de_agir = case @difficulty
+                             when :facil then 0.25
+                             when :normal then 0.65
+                             when :hospicio then 1.0
+                             else 0.65
+                             end
+
+            if rand <= chance_de_agir
+              if @ball_y > @paddle_right && @paddle_right < @height - 2
+                @paddle_right += 1
+              elsif @ball_y < @paddle_right && @paddle_right > 1
+                @paddle_right -= 1
+              end
+            end
+
+            next_x = @ball_x + @ball_dx
+            next_y = @ball_y + @ball_dy
+
+            if next_y <= 0 || next_y >= @height - 1
+              @ball_dy *= -1
+              next_y = @ball_y + @ball_dy 
+            end
+
+            if next_x == 1 && next_y.between?(@paddle_left - 1, @paddle_left + 1)
+              @ball_dx *= -1
+              next_x = 2 
+            elsif next_x == @width - 2 && next_y.between?(@paddle_right - 1, @paddle_right + 1)
+              @ball_dx *= -1
+              next_x = @width - 3 
+            end
+
+            @ball_x = next_x
+            @ball_y = next_y
+
+            if @ball_x < 0
+              @score_right += 1
+              reset_ball
+            elsif @ball_x >= @width
+              @score_left += 1
+              reset_ball
+            end
+          end
+
+          def render
+            screen = Array.new(@height) { Array.new(@width, ' ') }
+
+            @height.times do |y|
+              @width.times do |x|
+                if y == 0 || y == @height - 1
+                  screen[y][x] = '-'
+                elsif x == @width / 2 && y.even?
+                  screen[y][x] = '|'
+                end
+              end
+            end
+
+            screen[2][@width / 4] = @score_left.to_s
+            screen[2][3 * @width / 4] = @score_right.to_s
+
+            (-1..1).each do |dy|
+              screen[@paddle_left + dy][1] = ']' if (@paddle_left + dy).between?(0, @height-1)
+              screen[@paddle_right + dy][@width-2] = '[' if (@paddle_right + dy).between?(0, @height-1)
+            end
+
+            screen[@ball_y][@ball_x] = 'O' if @ball_y.between?(0, @height-1) && @ball_x.between?(0, @width-1)
+
+            screen.map(&:join).join("\n")
+          end
+        end
+
+        document = JS.global[:document]
+        menu = document.getElementById("menu")
+        game_screen = document.getElementById("game-screen")
+
+        game = ASCIIPong.new
+
+        JS.global.addEventListener("keydown") do |event|
+          game.update_keys(event[:key].to_s, true)
+        end
+
+        JS.global.addEventListener("keyup") do |event|
+          game.update_keys(event[:key].to_s, false)
+        end
+
+        def start_game(game, document, menu, game_screen, diff)
+          game.difficulty = diff
+          menu[:style][:display] = "none"
+          game_screen[:style][:display] = "block"
+
+          JS.global.setInterval(-> {
+            game.update
+            game_screen[:innerText] = game.render
+          }, 60)
+        end
+
+        document.getElementById("btn-facil").addEventListener("click") do
+          start_game(game, document, menu, game_screen, :facil)
+        end
+
+        document.getElementById("btn-normal").addEventListener("click") do
+          start_game(game, document, menu, game_screen, :normal)
+        end
+
+        document.getElementById("btn-hospicio").addEventListener("click") do
+          start_game(game, document, menu, game_screen, :hospicio)
+        end
+    </script>
+</body>
+</html>
