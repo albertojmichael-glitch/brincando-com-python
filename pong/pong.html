@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>ASCII Pong - Hitboxes Corrigidas</title>
+    <title>ASCII Pong - Tela Expandida</title>
     <script src="https://cdn.jsdelivr.net/npm/ruby-3_2-wasm-wasi@2.1.0/dist/browser.script.iife.js"></script>
     <style>
         body {
@@ -42,7 +42,7 @@
         }
         #game-screen {
             font-family: monospace;
-            font-size: 18px;
+            font-size: 16px; /* Fonte levemente reduzida para o grid maior caber na tela */
             line-height: 1;
             display: none;
         }
@@ -67,8 +67,9 @@
           attr_accessor :width, :height, :paddle_left, :paddle_right, :score_left, :score_right, :difficulty, :right_human
           
           def initialize
-            @width = 50
-            @height = 20
+            # TELA MAIOR: 80 colunas x 30 linhas
+            @width = 80
+            @height = 30
             @paddle_left = @height / 2
             @paddle_right = @height / 2
             @score_left = 0
@@ -92,25 +93,29 @@
           end
 
           def update
-            # 1. Movimento dos Jogadores (limites ajustados para não cortar a nova raquete maior)
-            @paddle_left -= 1 if @keys["w"] && @paddle_left > 2
-            @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 3
+            # 1. Movimento dos Jogadores (Raquetes agora têm 7 de tamanho: limites ajustados para > 3 e < height - 4)
+            @paddle_left -= 1 if @keys["w"] && @paddle_left > 3
+            @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 4
 
             if @right_human
-              @paddle_right -= 1 if @keys["arrowup"] && @paddle_right > 2
-              @paddle_right += 1 if @keys["arrowdown"] && @paddle_right < @height - 3
+              @paddle_right -= 1 if @keys["arrowup"] && @paddle_right > 3
+              @paddle_right += 1 if @keys["arrowdown"] && @paddle_right < @height - 4
             else
+              # IA BUFFADA: 
+              # Fácil = 50% de chance (ainda erra, mas consegue acompanhar lances lentos)
+              # Normal = 80% (erra raramente, quase humana)
+              # Hospício = 100% (nunca perde um frame)
               chance_de_agir = case @difficulty
-                               when :facil then 0.25
-                               when :normal then 0.60
-                               when :hospicio then 0.95
-                               else 0.60
+                               when :facil then 0.50
+                               when :normal then 0.80
+                               when :hospicio then 1.0
+                               else 0.80
                                end
 
               if rand <= chance_de_agir
-                if @ball_y > @paddle_right && @paddle_right < @height - 3
+                if @ball_y > @paddle_right && @paddle_right < @height - 4
                   @paddle_right += 1
-                elsif @ball_y < @paddle_right && @paddle_right > 2
+                elsif @ball_y < @paddle_right && @paddle_right > 3
                   @paddle_right -= 1
                 end
               end
@@ -126,14 +131,12 @@
               next_y = @ball_y + @ball_dy 
             end
 
-            # HITBOX MELHORADA: 
-            # Checa se a bola chegou OU PASSOU da linha da raquete (<= 1) 
-            # e se ela está dentro dos 5 blocos de altura da raquete (-2 a +2)
-            if next_x <= 1 && next_y.between?(@paddle_left - 2, @paddle_left + 2)
-              @ball_dx = 1 # Força a bola a ir pra direita, evitando prender na raquete
+            # HITBOX (Raquetes de tamanho 7 -> checa de -3 a +3 em relação ao centro da raquete)
+            if next_x <= 1 && next_y.between?(@paddle_left - 3, @paddle_left + 3)
+              @ball_dx = 1 
               next_x = 2 
-            elsif next_x >= @width - 2 && next_y.between?(@paddle_right - 2, @paddle_right + 2)
-              @ball_dx = -1 # Força pra esquerda
+            elsif next_x >= @width - 2 && next_y.between?(@paddle_right - 3, @paddle_right + 3)
+              @ball_dx = -1 
               next_x = @width - 3 
             end
 
@@ -163,8 +166,8 @@
               end
             end
 
-            # RAQUETES MAIORES: Renderiza de -2 a 2 (5 blocos de altura no total)
-            (-2..2).each do |dy|
+            # Raquetes maiores: -3 a 3 (7 blocos)
+            (-3..3).each do |dy|
               screen[@paddle_left + dy][1] = ']' if (@paddle_left + dy).between?(0, @height-1)
               screen[@paddle_right + dy][@width-2] = '[' if (@paddle_right + dy).between?(0, @height-1)
             end
