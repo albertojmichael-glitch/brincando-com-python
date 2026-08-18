@@ -77,12 +77,6 @@
             @right_human = false
             
             @keys = { "w" => false, "s" => false, "arrowup" => false, "arrowdown" => false }
-            
-            # Controle de velocidade da bola
-            @frame_count = 0
-            # A bola só anda a cada N frames (aumente este número para deixar mais lento)
-            @ball_speed_delay = 2 
-            
             reset_ball
           end
 
@@ -98,7 +92,7 @@
           end
 
           def update
-            # 1. Movimento dos Jogadores (P1 e P2/IA se movem suavemente a cada frame)
+            # 1. Movimento dos Jogadores
             @paddle_left -= 1 if @keys["w"] && @paddle_left > 1
             @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 2
 
@@ -122,20 +116,15 @@
               end
             end
 
-            # 2. Movimento da Bola controlado por delay de frames
-            @frame_count += 1
-            return if @frame_count % @ball_speed_delay != 0
-
+            # 2. Movimento da Bola (agora flui naturalmente a cada frame)
             next_x = @ball_x + @ball_dx
             next_y = @ball_y + @ball_dy
 
-            # Colisão com Teto e Chão
             if next_y <= 0 || next_y >= @height - 1
               @ball_dy *= -1
               next_y = @ball_y + @ball_dy 
             end
 
-            # Colisão com Raquetes
             if next_x == 1 && next_y.between?(@paddle_left - 1, @paddle_left + 1)
               @ball_dx *= -1
               next_x = 2 
@@ -147,7 +136,7 @@
             @ball_x = next_x
             @ball_y = next_y
 
-            # Pontuação
+            # 3. Pontuação
             if @ball_x < 0
               @score_right += 1
               reset_ball
@@ -219,8 +208,7 @@
           menu[:style][:display] = "none"
           game_screen[:style][:display] = "block"
 
-          # Ajustado para 70ms (~14 atualizações por segundo)
-          # Isso deixa o movimento limpo e visível para arte ASCII
+          # Ajustado para 40ms (25 atualizações por segundo). Fim da câmera lenta!
           interval_id = JS.global.setInterval(-> {
             if $pong_paused
               score_el[:innerText] = "[PAUSED] Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
@@ -229,7 +217,7 @@
               score_el[:innerText] = "Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
               game_screen[:innerText] = game.render
             end
-          }, 70)
+          }, 40)
 
           $pong_interval_id = interval_id
         end
