@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Pong - Ultimate Edition</title>
+    <title>ASCII Pong - Hitboxes Corrigidas</title>
     <script src="https://cdn.jsdelivr.net/npm/ruby-3_2-wasm-wasi@2.1.0/dist/browser.script.iife.js"></script>
     <style>
         body {
@@ -92,44 +92,48 @@
           end
 
           def update
-            # 1. Movimento dos Jogadores
-            @paddle_left -= 1 if @keys["w"] && @paddle_left > 1
-            @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 2
+            # 1. Movimento dos Jogadores (limites ajustados para não cortar a nova raquete maior)
+            @paddle_left -= 1 if @keys["w"] && @paddle_left > 2
+            @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 3
 
             if @right_human
-              @paddle_right -= 1 if @keys["arrowup"] && @paddle_right > 1
-              @paddle_right += 1 if @keys["arrowdown"] && @paddle_right < @height - 2
+              @paddle_right -= 1 if @keys["arrowup"] && @paddle_right > 2
+              @paddle_right += 1 if @keys["arrowdown"] && @paddle_right < @height - 3
             else
               chance_de_agir = case @difficulty
-                               when :facil then 0.40
-                               when :normal then 0.75
+                               when :facil then 0.25
+                               when :normal then 0.60
                                when :hospicio then 0.95
-                               else 0.70
+                               else 0.60
                                end
 
               if rand <= chance_de_agir
-                if @ball_y > @paddle_right && @paddle_right < @height - 2
+                if @ball_y > @paddle_right && @paddle_right < @height - 3
                   @paddle_right += 1
-                elsif @ball_y < @paddle_right && @paddle_right > 1
+                elsif @ball_y < @paddle_right && @paddle_right > 2
                   @paddle_right -= 1
                 end
               end
             end
 
-            # 2. Movimento da Bola (agora flui naturalmente a cada frame)
+            # 2. Movimento da Bola
             next_x = @ball_x + @ball_dx
             next_y = @ball_y + @ball_dy
 
+            # Bateu no teto ou chão
             if next_y <= 0 || next_y >= @height - 1
               @ball_dy *= -1
               next_y = @ball_y + @ball_dy 
             end
 
-            if next_x == 1 && next_y.between?(@paddle_left - 1, @paddle_left + 1)
-              @ball_dx *= -1
+            # HITBOX MELHORADA: 
+            # Checa se a bola chegou OU PASSOU da linha da raquete (<= 1) 
+            # e se ela está dentro dos 5 blocos de altura da raquete (-2 a +2)
+            if next_x <= 1 && next_y.between?(@paddle_left - 2, @paddle_left + 2)
+              @ball_dx = 1 # Força a bola a ir pra direita, evitando prender na raquete
               next_x = 2 
-            elsif next_x == @width - 2 && next_y.between?(@paddle_right - 1, @paddle_right + 1)
-              @ball_dx *= -1
+            elsif next_x >= @width - 2 && next_y.between?(@paddle_right - 2, @paddle_right + 2)
+              @ball_dx = -1 # Força pra esquerda
               next_x = @width - 3 
             end
 
@@ -159,7 +163,8 @@
               end
             end
 
-            (-1..1).each do |dy|
+            # RAQUETES MAIORES: Renderiza de -2 a 2 (5 blocos de altura no total)
+            (-2..2).each do |dy|
               screen[@paddle_left + dy][1] = ']' if (@paddle_left + dy).between?(0, @height-1)
               screen[@paddle_right + dy][@width-2] = '[' if (@paddle_right + dy).between?(0, @height-1)
             end
@@ -208,7 +213,6 @@
           menu[:style][:display] = "none"
           game_screen[:style][:display] = "block"
 
-          # Ajustado para 40ms (25 atualizações por segundo). Fim da câmera lenta!
           interval_id = JS.global.setInterval(-> {
             if $pong_paused
               score_el[:innerText] = "[PAUSED] Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
@@ -217,7 +221,7 @@
               score_el[:innerText] = "Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
               game_screen[:innerText] = game.render
             end
-          }, 48)
+          }, 40)
 
           $pong_interval_id = interval_id
         end
