@@ -101,10 +101,10 @@
               @paddle_right += 1 if @keys["arrowdown"] && @paddle_right < @height - 2
             else
               chance_de_agir = case @difficulty
-                               when :facil then 0.25
-                               when :normal then 0.60
+                               when :facil then 0.40
+                               when :normal then 0.75
                                when :hospicio then 0.95
-                               else 0.60
+                               else 0.70
                                end
 
               if rand <= chance_de_agir
@@ -217,7 +217,7 @@
               score_el[:innerText] = "Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
               game_screen[:innerText] = game.render
             end
-          }, 40)
+          }, 48)
 
           $pong_interval_id = interval_id
         end
