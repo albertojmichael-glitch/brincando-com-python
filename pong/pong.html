@@ -14,6 +14,7 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
+            font-family: monospace;
         }
         .menu {
             display: flex;
@@ -32,6 +33,19 @@
         }
         button:hover { background: #fff; }
         button:disabled { background: #555; color: #222; cursor: not-allowed; }
+        #score {
+            font-family: monospace;
+            margin-bottom: 8px;
+            color: #7FDBFF;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #game-screen {
+            font-family: monospace;
+            font-size: 18px;
+            line-height: 1;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -43,9 +57,8 @@
         <button id="btn-2p">2 Players</button>
     </div>
 
-    <!-- Patch v1: Scoreboard externo -->
-    <div id="score" style="font-family:monospace; margin-bottom:8px; color:#7FDBFF; font-size: 24px; font-weight: bold;"></div>
-    <pre id="game-screen" style="font-family:monospace; font-size: 18px; line-height: 1; display: none;"></pre>
+    <div id="score"></div>
+    <pre id="game-screen"></pre>
 
     <script type="text/ruby">
         require 'js'
@@ -63,8 +76,13 @@
             @difficulty = :normal
             @right_human = false
             
-            # Patch: Chaves atualizadas para 2P
             @keys = { "w" => false, "s" => false, "arrowup" => false, "arrowdown" => false }
+            
+            # Controle de velocidade da bola
+            @frame_count = 0
+            # A bola só anda a cada N frames (aumente este número para deixar mais lento)
+            @ball_speed_delay = 2 
+            
             reset_ball
           end
 
@@ -80,20 +98,19 @@
           end
 
           def update
-            # 1. Movimento P1
+            # 1. Movimento dos Jogadores (P1 e P2/IA se movem suavemente a cada frame)
             @paddle_left -= 1 if @keys["w"] && @paddle_left > 1
             @paddle_left += 1 if @keys["s"] && @paddle_left < @height - 2
 
-            # 2. Movimento P2 ou IA (Patch aplicado)
             if @right_human
               @paddle_right -= 1 if @keys["arrowup"] && @paddle_right > 1
               @paddle_right += 1 if @keys["arrowdown"] && @paddle_right < @height - 2
             else
               chance_de_agir = case @difficulty
                                when :facil then 0.25
-                               when :normal then 0.65
-                               when :hospicio then 1.0
-                               else 0.65
+                               when :normal then 0.60
+                               when :hospicio then 0.95
+                               else 0.60
                                end
 
               if rand <= chance_de_agir
@@ -105,30 +122,32 @@
               end
             end
 
-            # 3. Física e Colisão
+            # 2. Movimento da Bola controlado por delay de frames
+            @frame_count += 1
+            return if @frame_count % @ball_speed_delay != 0
+
             next_x = @ball_x + @ball_dx
             next_y = @ball_y + @ball_dy
 
+            # Colisão com Teto e Chão
             if next_y <= 0 || next_y >= @height - 1
               @ball_dy *= -1
               next_y = @ball_y + @ball_dy 
             end
 
-            # Mecânica extra: Variação de ângulo ao bater na raquete
+            # Colisão com Raquetes
             if next_x == 1 && next_y.between?(@paddle_left - 1, @paddle_left + 1)
               @ball_dx *= -1
-              @ball_dy = (next_y - @paddle_left) # Hit no topo joga pra cima, embaixo joga pra baixo
               next_x = 2 
             elsif next_x == @width - 2 && next_y.between?(@paddle_right - 1, @paddle_right + 1)
               @ball_dx *= -1
-              @ball_dy = (next_y - @paddle_right)
               next_x = @width - 3 
             end
 
             @ball_x = next_x
             @ball_y = next_y
 
-            # 4. Pontuação
+            # Pontuação
             if @ball_x < 0
               @score_right += 1
               reset_ball
@@ -168,11 +187,9 @@
 
         game = ASCIIPong.new
 
-        # Inicialização do estado global
-        JS.global[:_pong_paused] = false
-        JS.global[:_pong_interval_id] = nil
+        $pong_paused = false
+        $pong_interval_id = nil
 
-        # Patch v2: Key handlers com Pause
         JS.global.addEventListener("keydown") do |event|
           key = event[:key].to_s.downcase
           if key == "p"
@@ -187,27 +204,23 @@
           game.update_keys(key, false) unless key == "p"
         end
 
-        # Patch v3: Safe start_game
         def start_game(game, document, menu, game_screen, score_el, diff, right_human: false)
-          # Limpa intervalo anterior usando a variável Ruby
           JS.global.clearInterval($pong_interval_id) if $pong_interval_id
 
           game.difficulty = diff
           game.right_human = right_human
           game.score_left = 0
           game.score_right = 0
-          
-          # Garante que começa despausado
           $pong_paused = false
 
-          # Desabilita e esconde botões
           document.querySelectorAll("button").forEach do |btn| 
             btn[:disabled] = true 
           end
           menu[:style][:display] = "none"
           game_screen[:style][:display] = "block"
 
-          # 60 FPS Loop (~16ms)
+          # Ajustado para 70ms (~14 atualizações por segundo)
+          # Isso deixa o movimento limpo e visível para arte ASCII
           interval_id = JS.global.setInterval(-> {
             if $pong_paused
               score_el[:innerText] = "[PAUSED] Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
@@ -216,9 +229,8 @@
               score_el[:innerText] = "Player: #{game.score_left}    #{game.right_human ? 'P2' : 'CPU'}: #{game.score_right}"
               game_screen[:innerText] = game.render
             end
-          }, 16)
+          }, 70)
 
-          # Salva o ID na variável Ruby
           $pong_interval_id = interval_id
         end
 
