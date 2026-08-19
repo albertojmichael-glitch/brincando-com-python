@@ -304,7 +304,7 @@
         end
  
         local function update_best_display()
-            best_el.children[1].innerText = tostring(best_score)
+            best_el.children[1].innerText = tostring(math.floor(best_score))
         end
  
         local function update_level_display()
@@ -488,7 +488,22 @@
  
             for i = 1, #snake do
                 local cur = snake[i]
-                ctx:lineTo((cur.x - 1) * tile_size + (tile_size / 2) + shake_x, (cur.y - 1) * tile_size + (tile_size / 2) + shake_y)
+                local cx = (cur.x - 1) * tile_size + (tile_size / 2) + shake_x
+                local cy = (cur.y - 1) * tile_size + (tile_size / 2) + shake_y
+                
+                if i > 1 then
+                    local prev = snake[i-1]
+                    -- A MÁGICA AQUI: Se a distância for > 1, ela atravessou a tela!
+                    if math.abs(cur.x - prev.x) > 1 or math.abs(cur.y - prev.y) > 1 then
+                        ctx:stroke() -- Termina a linha
+                        ctx:beginPath() -- Começa uma nova do outro lado
+                        ctx:moveTo(cx, cy)
+                    else
+                        ctx:lineTo(cx, cy)
+                    end
+                else
+                    ctx:lineTo(cx, cy)
+                end
             end
             ctx:stroke()
  
