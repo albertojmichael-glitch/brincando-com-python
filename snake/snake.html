@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Snake em Lua - Controles Corrigidos</title>
+    <title>Snake em Lua - Controle Absoluto</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <style>
         body {
@@ -15,7 +15,7 @@
             height: 100vh;
             margin: 0;
             font-family: sans-serif;
-            overflow: hidden; /* Evita qualquer rolagem extra */
+            overflow: hidden;
         }
         button {
             padding: 10px 20px;
@@ -39,6 +39,7 @@
             border: 4px solid #7FDBFF;
             display: none;
             box-shadow: 0 0 20px rgba(127, 219, 255, 0.2);
+            outline: none; /* Remove a borda azul feia quando o canvas ganha foco */
         }
     </style>
 </head>
@@ -46,8 +47,23 @@
 
     <button id="btn-start">Jogar Snake</button>
     <div id="score">Pontos: 0</div>
-    <canvas id="game-canvas" width="400" height="400"></canvas>
+    
+    <!-- Adicionado tabindex="0" para o canvas poder ser focado pelo teclado -->
+    <canvas id="game-canvas" width="400" height="400" tabindex="0"></canvas>
 
+    <!-- PONTE JAVASCRIPT: Captura as teclas e guarda em uma variável global segura -->
+    <script>
+        window.teclaPressionada = "";
+        window.addEventListener("keydown", function(e) {
+            const teclasValidas = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
+            if(teclasValidas.includes(e.key)) {
+                e.preventDefault(); // Impede a tela de rolar
+                window.teclaPressionada = e.key.toLowerCase();
+            }
+        });
+    </script>
+
+    <!-- LÓGICA DO JOGO EM LUA -->
     <script type="application/lua">
         local js = require "js"
         local document = js.global.document
@@ -86,6 +102,22 @@
         local function update()
             if game_over then return end
 
+            -- LÊ A TECLA DA PONTE JAVASCRIPT
+            local key = tostring(window.teclaPressionada)
+            window.teclaPressionada = "" -- Limpa a tecla após ler
+
+            -- Aplica a direção
+            if (key == "w" or key == "arrowup") and dy == 0 then
+                dx, dy = 0, -1
+            elseif (key == "s" or key == "arrowdown") and dy == 0 then
+                dx, dy = 0, 1
+            elseif (key == "a" or key == "arrowleft") and dx == 0 then
+                dx, dy = -1, 0
+            elseif (key == "d" or key == "arrowright") and dx == 0 then
+                dx, dy = 1, 0
+            end
+
+            -- Movimentação
             local head = snake[1]
             local new_x = head.x + dx
             local new_y = head.y + dy
@@ -139,31 +171,12 @@
             end
         end
 
-        -- MUDANÇA AQUI: Ouvinte no 'window' em vez de 'document' para garantir captura
-        window:addEventListener("keydown", function(e)
-            local key = tostring(e.key):lower()
-            
-            if key == "arrowup" or key == "arrowdown" or key == "arrowleft" or key == "arrowright" then
-                e:preventDefault()
-            end
-
-            if (key == "w" or key == "arrowup") and dy == 0 then
-                dx, dy = 0, -1
-            elseif (key == "s" or key == "arrowdown") and dy == 0 then
-                dx, dy = 0, 1
-            elseif (key == "a" or key == "arrowleft") and dx == 0 then
-                dx, dy = -1, 0
-            elseif (key == "d" or key == "arrowright") and dx == 0 then
-                dx, dy = 1, 0
-            end
-        end)
-
         btn_start:addEventListener("click", function()
             btn_start.style.display = "none"
             canvas.style.display = "block"
             
-            -- MUDANÇA AQUI: Força o navegador a focar na janela do jogo para os controles funcionarem
-            window:focus()
+            -- FORÇA O FOCO NO CANVAS
+            canvas:focus()
             
             snake = { {x = math.floor(grid_size/2), y = math.floor(grid_size/2)} }
             dx, dy = 1, 0
