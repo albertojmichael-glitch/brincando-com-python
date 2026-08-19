@@ -41,7 +41,6 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         canvas {
-            /* Removemos a cor de fundo daqui, o Lua vai desenhar o xadrez */
             border-radius: 8px;
             display: none;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -199,7 +198,7 @@
             
             ctx:beginPath()
             
-            -- Calcula a posição VISUAL da cabeça (posição real + a fração do movimento atual)
+            -- Calcula a posição VISUAL da cabeça
             local visual_hx = (snake[1].x - 1 + (dx * frac)) * tile_size + (tile_size/2)
             local visual_hy = (snake[1].y - 1 + (dy * frac)) * tile_size + (tile_size/2)
             
@@ -208,14 +207,13 @@
             -- Desenha o resto do corpo
             for i = 1, #snake do
                 local cur = snake[i]
-                -- Desenha até o centro exato da casa atual
                 ctx:lineTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
             end
             ctx:stroke()
 
             ctx.shadowColor = "transparent"
 
-            -- 4. Olhos (Acompanham a cabeça interpolada)
+            -- 4. Olhos
             local ex1, ey1, ex2, ey2 = 0, 0, 0, 0
 
             if dx == 1 then
@@ -248,13 +246,11 @@
                 timer = timer + dt
             end
 
-            -- Lógica acontece apenas nos "ticks" do grid
             if timer >= tick_rate then
                 update()
                 timer = timer - tick_rate
             end
 
-            -- O desenho rola todo frame, usando a fração (0.0 a 1.0) para deslizar a cabeça
             local fraction = timer / tick_rate
             if game_over then fraction = 0 end
             
@@ -264,6 +260,29 @@
                 window:requestAnimationFrame(game_loop)
             end
         end
+
+        -- AQUI ESTÁ O BLOCO QUE FALTAVA!
+        btn_start:addEventListener("click", function()
+            btn_start.style.display = "none"
+            canvas.style.display = "block"
+            canvas:focus()
+            
+            snake = { 
+                {x = 10, y = 10},
+                {x = 9, y = 10},
+                {x = 8, y = 10}
+            }
+            dx, dy = 1, 0
+            score = 0
+            game_over = false
+            timer = 0
+            math.randomseed(os.time())
+            spawn_food()
+            
+            -- Inicia o Game Loop moderno
+            last_time = window.performance:now()
+            window:requestAnimationFrame(game_loop)
+        end)
     </script>
 </body>
 </html>
