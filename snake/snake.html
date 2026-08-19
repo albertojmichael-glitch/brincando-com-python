@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Snake em Lua - Gráficos Google</title>
+    <title>Snake em Lua - Edição Definitiva</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <style>
         body {
@@ -50,7 +50,7 @@
 </head>
 <body>
 
-    <button id="btn-start">Jogar Snake (Remastered)</button>
+    <button id="btn-start">Jogar Snake (Definitivo)</button>
     <div id="score">Pontos: 0</div>
     
     <canvas id="game-canvas" width="400" height="400" tabindex="0"></canvas>
@@ -82,7 +82,7 @@
         local food = {x = 0, y = 0}
         local score = 0
         local game_over = false
-        local interval_id = nil
+        local fila_comandos = {}
 
         local canvas = document:getElementById("game-canvas")
         local ctx = canvas:getContext("2d")
@@ -107,18 +107,25 @@
         local function update()
             if game_over then return end
 
+            -- Captura tecla e guarda na fila
             local key = tostring(window.teclaPressionada)
             window.teclaPressionada = "" 
+            if key ~= "" and key ~= "undefined" then
+                table.insert(fila_comandos, key)
+            end
 
-            -- Impede que a cobra "dê ré" no próprio corpo
-            if (key == "w" or key == "arrowup") and dy == 0 then
-                dx, dy = 0, -1
-            elseif (key == "s" or key == "arrowdown") and dy == 0 then
-                dx, dy = 0, 1
-            elseif (key == "a" or key == "arrowleft") and dx == 0 then
-                dx, dy = -1, 0
-            elseif (key == "d" or key == "arrowright") and dx == 0 then
-                dx, dy = 1, 0
+            -- Processa apenas UM comando por frame da cobra
+            if #fila_comandos > 0 then
+                local comando = table.remove(fila_comandos, 1)
+                if (comando == "w" or comando == "arrowup") and dy == 0 then
+                    dx, dy = 0, -1
+                elseif (comando == "s" or comando == "arrowdown") and dy == 0 then
+                    dx, dy = 0, 1
+                elseif (comando == "a" or comando == "arrowleft") and dx == 0 then
+                    dx, dy = -1, 0
+                elseif (comando == "d" or comando == "arrowright") and dx == 0 then
+                    dx, dy = 1, 0
+                end
             end
 
             local head = snake[1]
@@ -152,6 +159,7 @@
 
         local timer = 0
         local tick_rate = 120
+        local last_time = 0
 
         local function render(frac)
             -- 1. Fundo Xadrez
@@ -198,13 +206,12 @@
             
             ctx:beginPath()
             
-            -- Calcula a posição VISUAL da cabeça
+            -- Posição VISUAL da cabeça interpolada
             local visual_hx = (snake[1].x - 1 + (dx * frac)) * tile_size + (tile_size/2)
             local visual_hy = (snake[1].y - 1 + (dy * frac)) * tile_size + (tile_size/2)
             
             ctx:moveTo(visual_hx, visual_hy)
             
-            -- Desenha o resto do corpo
             for i = 1, #snake do
                 local cur = snake[i]
                 ctx:lineTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
@@ -235,12 +242,11 @@
             ctx:beginPath(); ctx:arc(visual_hx + ex2 + (dx*1.5), visual_hy + ey2 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
         end
 
-        local last_time = 0
-
-        local function game_loop(timestamp)
-            local ts = tonumber(timestamp) or 0
-            local dt = ts - last_time
-            last_time = ts
+        local function game_loop()
+            -- LÊ O TEMPO DIRETO DO SISTEMA (À prova de falhas)
+            local current_time = tonumber(window.performance:now())
+            local dt = current_time - last_time
+            last_time = current_time
             
             if not game_over then
                 timer = timer + dt
@@ -261,7 +267,6 @@
             end
         end
 
-        -- AQUI ESTÁ O BLOCO QUE FALTAVA!
         btn_start:addEventListener("click", function()
             btn_start.style.display = "none"
             canvas.style.display = "block"
@@ -276,11 +281,11 @@
             score = 0
             game_over = false
             timer = 0
+            fila_comandos = {}
             math.randomseed(os.time())
             spawn_food()
             
-            -- Inicia o Game Loop moderno
-            last_time = window.performance:now()
+            last_time = tonumber(window.performance:now())
             window:requestAnimationFrame(game_loop)
         end)
     </script>
