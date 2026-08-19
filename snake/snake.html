@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Snake em Lua - Controle Absoluto</title>
+    <title>Snake em Lua - Gráficos Google</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <style>
         body {
-            background-color: #111;
+            background-color: #2c3e50;
             color: #fff;
             display: flex;
             flex-direction: column;
@@ -14,50 +14,55 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background: #2ECC40;
+            padding: 12px 24px;
+            font-size: 18px;
+            background: #a2d149;
             color: #111;
             border: none;
             cursor: pointer;
             font-weight: bold;
             margin-bottom: 20px;
-            border-radius: 5px;
+            border-radius: 8px;
+            box-shadow: 0 4px 0 #87b03b;
+            transition: transform 0.1s;
         }
-        button:hover { background: #fff; }
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
         #score {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         canvas {
-            background-color: #001f3f;
-            border: 4px solid #7FDBFF;
+            /* Removemos a cor de fundo daqui, o Lua vai desenhar o xadrez */
+            border-radius: 8px;
             display: none;
-            box-shadow: 0 0 20px rgba(127, 219, 255, 0.2);
-            outline: none; /* Remove a borda azul feia quando o canvas ganha foco */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            outline: none;
         }
     </style>
 </head>
 <body>
 
-    <button id="btn-start">Jogar Snake</button>
+    <button id="btn-start">Jogar Snake (Remastered)</button>
     <div id="score">Pontos: 0</div>
     
-    <!-- Adicionado tabindex="0" para o canvas poder ser focado pelo teclado -->
     <canvas id="game-canvas" width="400" height="400" tabindex="0"></canvas>
 
-    <!-- PONTE JAVASCRIPT: Captura as teclas e guarda em uma variável global segura -->
+    <!-- PONTE JAVASCRIPT -->
     <script>
         window.teclaPressionada = "";
         window.addEventListener("keydown", function(e) {
             const teclasValidas = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
             if(teclasValidas.includes(e.key)) {
-                e.preventDefault(); // Impede a tela de rolar
+                e.preventDefault();
                 window.teclaPressionada = e.key.toLowerCase();
             }
         });
@@ -68,6 +73,7 @@
         local js = require "js"
         local document = js.global.document
         local window = js.global
+        local math = math
 
         local grid_size = 20
         local tile_size = 20
@@ -102,11 +108,10 @@
         local function update()
             if game_over then return end
 
-            -- LÊ A TECLA DA PONTE JAVASCRIPT
             local key = tostring(window.teclaPressionada)
-            window.teclaPressionada = "" -- Limpa a tecla após ler
+            window.teclaPressionada = "" 
 
-            -- Aplica a direção
+            -- Impede que a cobra "dê ré" no próprio corpo
             if (key == "w" or key == "arrowup") and dy == 0 then
                 dx, dy = 0, -1
             elseif (key == "s" or key == "arrowdown") and dy == 0 then
@@ -117,16 +122,17 @@
                 dx, dy = 1, 0
             end
 
-            -- Movimentação
             local head = snake[1]
             local new_x = head.x + dx
             local new_y = head.y + dy
 
+            -- Atravessar paredes
             if new_x < 1 then new_x = grid_size end
             if new_x > grid_size then new_x = 1 end
             if new_y < 1 then new_y = grid_size end
             if new_y > grid_size then new_y = 1 end
 
+            -- Colisão
             for i = 1, #snake do
                 if snake[i].x == new_x and snake[i].y == new_y then
                     game_over = true
@@ -146,39 +152,109 @@
         end
 
         local function render()
-            ctx.fillStyle = "#001f3f"
-            ctx:fillRect(0, 0, canvas.width, canvas.height)
+            -- 1. DESENHAR FUNDO XADREZ (Verde claro e escuro)
+            for y = 1, grid_size do
+                for x = 1, grid_size do
+                    if (x + y) % 2 == 0 then
+                        ctx.fillStyle = "#aad751" -- Verde claro
+                    else
+                        ctx.fillStyle = "#a2d149" -- Verde escuro
+                    end
+                    ctx:fillRect((x - 1) * tile_size, (y - 1) * tile_size, tile_size, tile_size)
+                end
+            end
 
             if game_over then
-                ctx.fillStyle = "#FF4136"
-                ctx.font = "30px sans-serif"
-                ctx:fillText("GAME OVER", 110, 200)
+                ctx.fillStyle = "rgba(0, 0, 0, 0.5)"
+                ctx:fillRect(0, 0, canvas.width, canvas.height)
+                ctx.fillStyle = "#fff"
+                ctx.font = "bold 35px sans-serif"
+                ctx.textAlign = "center"
+                ctx:fillText("GAME OVER", canvas.width / 2, canvas.height / 2)
                 ctx.font = "16px sans-serif"
-                ctx:fillText("Recarregue a página para tentar de novo", 50, 240)
+                ctx:fillText("Recarregue a página", canvas.width / 2, (canvas.height / 2) + 30)
                 return
             end
 
-            ctx.fillStyle = "#FF4136"
-            ctx:fillRect((food.x - 1) * tile_size, (food.y - 1) * tile_size, tile_size, tile_size)
+            -- Configurar sombra global para a maçã e a cobra
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
+            ctx.shadowBlur = 4
+            ctx.shadowOffsetY = 3
 
-            for i = 1, #snake do
-                if i == 1 then
-                    ctx.fillStyle = "#3D9970"
+            -- 2. DESENHAR A MAÇÃ (Vermelha redondinha)
+            local cx = (food.x - 1) * tile_size + (tile_size / 2)
+            local cy = (food.y - 1) * tile_size + (tile_size / 2)
+            
+            ctx.fillStyle = "#e7471d"
+            ctx:beginPath()
+            ctx:arc(cx, cy, tile_size / 2.2, 0, 2 * math.pi)
+            ctx:fill()
+
+            -- 3. DESENHAR A COBRA (Linha contínua azul)
+            -- O truque para uma cobra orgânica é desenhar uma linha grossa com as pontas arredondadas!
+            ctx.strokeStyle = "#4b7cf6" -- Azul Google Snake
+            ctx.lineWidth = tile_size * 0.8
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+            
+            ctx:beginPath()
+            ctx:moveTo((snake[1].x - 1) * tile_size + (tile_size/2), (snake[1].y - 1) * tile_size + (tile_size/2))
+            
+            for i = 2, #snake do
+                local cur = snake[i]
+                local prev = snake[i-1]
+                -- Se a distância entre um gomo e outro for maior que 1, ela atravessou a tela. 
+                -- Interrompemos o desenho da linha para não cruzar o mapa inteiro.
+                if math.abs(cur.x - prev.x) > 1 or math.abs(cur.y - prev.y) > 1 then
+                    ctx:stroke()
+                    ctx:beginPath()
+                    ctx:moveTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
                 else
-                    ctx.fillStyle = "#2ECC40"
+                    ctx:lineTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
                 end
-                ctx:fillRect((snake[i].x - 1) * tile_size, (snake[i].y - 1) * tile_size, tile_size - 1, tile_size - 1)
             end
+            ctx:stroke()
+
+            -- Remover sombras para não aplicar nos olhos
+            ctx.shadowColor = "transparent"
+
+            -- 4. DESENHAR OS OLHOS
+            local hx = (snake[1].x - 1) * tile_size + (tile_size/2)
+            local hy = (snake[1].y - 1) * tile_size + (tile_size/2)
+            local ex1, ey1, ex2, ey2 = 0, 0, 0, 0
+
+            -- Posição dos olhos baseada na direção da cobra
+            if dx == 1 then -- Indo pra Direita
+                ex1, ey1 = 3, -4; ex2, ey2 = 3, 4
+            elseif dx == -1 then -- Indo pra Esquerda
+                ex1, ey1 = -3, -4; ex2, ey2 = -3, 4
+            elseif dy == 1 then -- Indo pra Baixo
+                ex1, ey1 = -4, 3; ex2, ey2 = 4, 3
+            elseif dy == -1 then -- Indo pra Cima
+                ex1, ey1 = -4, -3; ex2, ey2 = 4, -3
+            end
+
+            -- Branco do olho
+            ctx.fillStyle = "#fff"
+            ctx:beginPath(); ctx:arc(hx + ex1, hy + ey1, 3.5, 0, 2*math.pi); ctx:fill()
+            ctx:beginPath(); ctx:arc(hx + ex2, hy + ey2, 3.5, 0, 2*math.pi); ctx:fill()
+
+            -- Pupila preta (deslocada levemente na direção do movimento para ela "olhar" pra frente)
+            ctx.fillStyle = "#111"
+            ctx:beginPath(); ctx:arc(hx + ex1 + (dx*1.5), hy + ey1 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
+            ctx:beginPath(); ctx:arc(hx + ex2 + (dx*1.5), hy + ey2 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
         end
 
         btn_start:addEventListener("click", function()
             btn_start.style.display = "none"
             canvas.style.display = "block"
-            
-            -- FORÇA O FOCO NO CANVAS
             canvas:focus()
             
-            snake = { {x = math.floor(grid_size/2), y = math.floor(grid_size/2)} }
+            snake = { 
+                {x = 10, y = 10},
+                {x = 9, y = 10},
+                {x = 8, y = 10}
+            }
             dx, dy = 1, 0
             score = 0
             game_over = false
@@ -190,7 +266,7 @@
             interval_id = window:setInterval(function()
                 update()
                 render()
-            end, 100)
+            end, 120) -- Ajustei para 120ms (velocidade confortável)
         end)
     </script>
 </body>
