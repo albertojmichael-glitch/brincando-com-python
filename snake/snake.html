@@ -151,14 +151,17 @@
             end
         end
 
-        local function render()
-            -- 1. DESENHAR FUNDO XADREZ (Verde claro e escuro)
+        local timer = 0
+        local tick_rate = 120
+
+        local function render(frac)
+            -- 1. Fundo Xadrez
             for y = 1, grid_size do
                 for x = 1, grid_size do
                     if (x + y) % 2 == 0 then
-                        ctx.fillStyle = "#aad751" -- Verde claro
+                        ctx.fillStyle = "#aad751"
                     else
-                        ctx.fillStyle = "#a2d149" -- Verde escuro
+                        ctx.fillStyle = "#a2d149"
                     end
                     ctx:fillRect((x - 1) * tile_size, (y - 1) * tile_size, tile_size, tile_size)
                 end
@@ -176,98 +179,91 @@
                 return
             end
 
-            -- Configurar sombra global para a maçã e a cobra
             ctx.shadowColor = "rgba(0, 0, 0, 0.3)"
             ctx.shadowBlur = 4
             ctx.shadowOffsetY = 3
 
-            -- 2. DESENHAR A MAÇÃ (Vermelha redondinha)
+            -- 2. Maçã
             local cx = (food.x - 1) * tile_size + (tile_size / 2)
             local cy = (food.y - 1) * tile_size + (tile_size / 2)
-            
             ctx.fillStyle = "#e7471d"
             ctx:beginPath()
             ctx:arc(cx, cy, tile_size / 2.2, 0, 2 * math.pi)
             ctx:fill()
 
-            -- 3. DESENHAR A COBRA (Linha contínua azul)
-            -- O truque para uma cobra orgânica é desenhar uma linha grossa com as pontas arredondadas!
-            ctx.strokeStyle = "#4b7cf6" -- Azul Google Snake
+            -- 3. Cobra com Interpolação (Deslizamento)
+            ctx.strokeStyle = "#4b7cf6"
             ctx.lineWidth = tile_size * 0.8
             ctx.lineCap = "round"
             ctx.lineJoin = "round"
             
             ctx:beginPath()
-            ctx:moveTo((snake[1].x - 1) * tile_size + (tile_size/2), (snake[1].y - 1) * tile_size + (tile_size/2))
             
-            for i = 2, #snake do
+            -- Calcula a posição VISUAL da cabeça (posição real + a fração do movimento atual)
+            local visual_hx = (snake[1].x - 1 + (dx * frac)) * tile_size + (tile_size/2)
+            local visual_hy = (snake[1].y - 1 + (dy * frac)) * tile_size + (tile_size/2)
+            
+            ctx:moveTo(visual_hx, visual_hy)
+            
+            -- Desenha o resto do corpo
+            for i = 1, #snake do
                 local cur = snake[i]
-                local prev = snake[i-1]
-                -- Se a distância entre um gomo e outro for maior que 1, ela atravessou a tela. 
-                -- Interrompemos o desenho da linha para não cruzar o mapa inteiro.
-                if math.abs(cur.x - prev.x) > 1 or math.abs(cur.y - prev.y) > 1 then
-                    ctx:stroke()
-                    ctx:beginPath()
-                    ctx:moveTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
-                else
-                    ctx:lineTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
-                end
+                -- Desenha até o centro exato da casa atual
+                ctx:lineTo((cur.x - 1) * tile_size + (tile_size/2), (cur.y - 1) * tile_size + (tile_size/2))
             end
             ctx:stroke()
 
-            -- Remover sombras para não aplicar nos olhos
             ctx.shadowColor = "transparent"
 
-            -- 4. DESENHAR OS OLHOS
-            local hx = (snake[1].x - 1) * tile_size + (tile_size/2)
-            local hy = (snake[1].y - 1) * tile_size + (tile_size/2)
+            -- 4. Olhos (Acompanham a cabeça interpolada)
             local ex1, ey1, ex2, ey2 = 0, 0, 0, 0
 
-            -- Posição dos olhos baseada na direção da cobra
-            if dx == 1 then -- Indo pra Direita
+            if dx == 1 then
                 ex1, ey1 = 3, -4; ex2, ey2 = 3, 4
-            elseif dx == -1 then -- Indo pra Esquerda
+            elseif dx == -1 then
                 ex1, ey1 = -3, -4; ex2, ey2 = -3, 4
-            elseif dy == 1 then -- Indo pra Baixo
+            elseif dy == 1 then
                 ex1, ey1 = -4, 3; ex2, ey2 = 4, 3
-            elseif dy == -1 then -- Indo pra Cima
+            elseif dy == -1 then
                 ex1, ey1 = -4, -3; ex2, ey2 = 4, -3
             end
 
-            -- Branco do olho
             ctx.fillStyle = "#fff"
-            ctx:beginPath(); ctx:arc(hx + ex1, hy + ey1, 3.5, 0, 2*math.pi); ctx:fill()
-            ctx:beginPath(); ctx:arc(hx + ex2, hy + ey2, 3.5, 0, 2*math.pi); ctx:fill()
-
-            -- Pupila preta (deslocada levemente na direção do movimento para ela "olhar" pra frente)
+            ctx:beginPath(); ctx:arc(visual_hx + ex1, visual_hy + ey1, 3.5, 0, 2*math.pi); ctx:fill()
+            ctx:beginPath(); ctx:arc(visual_hx + ex2, visual_hy + ey2, 3.5, 0, 2*math.pi); ctx:fill()
+            
             ctx.fillStyle = "#111"
-            ctx:beginPath(); ctx:arc(hx + ex1 + (dx*1.5), hy + ey1 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
-            ctx:beginPath(); ctx:arc(hx + ex2 + (dx*1.5), hy + ey2 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
+            ctx:beginPath(); ctx:arc(visual_hx + ex1 + (dx*1.5), visual_hy + ey1 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
+            ctx:beginPath(); ctx:arc(visual_hx + ex2 + (dx*1.5), visual_hy + ey2 + (dy*1.5), 1.8, 0, 2*math.pi); ctx:fill()
         end
 
-        btn_start:addEventListener("click", function()
-            btn_start.style.display = "none"
-            canvas.style.display = "block"
-            canvas:focus()
-            
-            snake = { 
-                {x = 10, y = 10},
-                {x = 9, y = 10},
-                {x = 8, y = 10}
-            }
-            dx, dy = 1, 0
-            score = 0
-            game_over = false
-            math.randomseed(os.time())
-            spawn_food()
+        local last_time = 0
 
-            if interval_id then window:clearInterval(interval_id) end
+        local function game_loop(timestamp)
+            local ts = tonumber(timestamp) or 0
+            local dt = ts - last_time
+            last_time = ts
             
-            interval_id = window:setInterval(function()
+            if not game_over then
+                timer = timer + dt
+            end
+
+            -- Lógica acontece apenas nos "ticks" do grid
+            if timer >= tick_rate then
                 update()
-                render()
-            end, 120) -- Ajustei para 120ms (velocidade confortável)
-        end)
+                timer = timer - tick_rate
+            end
+
+            -- O desenho rola todo frame, usando a fração (0.0 a 1.0) para deslizar a cabeça
+            local fraction = timer / tick_rate
+            if game_over then fraction = 0 end
+            
+            render(fraction)
+
+            if not game_over then
+                window:requestAnimationFrame(game_loop)
+            end
+        end
     </script>
 </body>
 </html>
