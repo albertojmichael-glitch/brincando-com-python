@@ -2,43 +2,43 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>ASCII Snake em Lua</title>
-    <!-- Importa o interpretador Lua (Fengari) -->
+    <title>Snake em Lua - Gráficos Reais</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <style>
         body {
-            background-color: #001f3f;
-            color: #7FDBFF;
+            background-color: #111;
+            color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
-            font-family: monospace;
+            font-family: sans-serif;
         }
         button {
             padding: 10px 20px;
             font-size: 16px;
-            background: #7FDBFF;
-            color: #001f3f;
+            background: #2ECC40;
+            color: #111;
             border: none;
             cursor: pointer;
-            font-family: monospace;
             font-weight: bold;
             margin-bottom: 20px;
+            border-radius: 5px;
         }
         button:hover { background: #fff; }
-        button:disabled { background: #555; color: #222; cursor: not-allowed; }
         #score {
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
         }
-        #game-screen {
-            font-size: 18px;
-            line-height: 1;
+        /* O Canvas substitui o <pre> ASCII */
+        canvas {
+            background-color: #001f3f;
+            border: 4px solid #7FDBFF;
             display: none;
+            box-shadow: 0 0 20px rgba(127, 219, 255, 0.2);
         }
     </style>
 </head>
@@ -46,16 +46,19 @@
 
     <button id="btn-start">Jogar Snake</button>
     <div id="score">Pontos: 0</div>
-    <pre id="game-screen"></pre>
+    
+    <!-- Tela gráfica de 400x400 pixels -->
+    <canvas id="game-canvas" width="400" height="400"></canvas>
 
     <script type="application/lua">
         local js = require "js"
+        local document = js.global.document
         local window = js.global
-        local document = window.document
 
-        -- Configurações do Jogo
-        local width = 40
-        local height = 20
+        -- Configurações do Grid (20x20 blocos de 20 pixels = 400px)
+        local grid_size = 20
+        local tile_size = 20
+        
         local snake = {}
         local dx, dy = 1, 0
         local food = {x = 0, y = 0}
@@ -63,17 +66,16 @@
         local game_over = false
         local interval_id = nil
 
-        -- Elementos da Tela
-        local game_screen = document:getElementById("game-screen")
+        local canvas = document:getElementById("game-canvas")
+        local ctx = canvas:getContext("2d")
         local score_el = document:getElementById("score")
         local btn_start = document:getElementById("btn-start")
 
-        -- Função para gerar a comida em local vazio
         local function spawn_food()
             local valid = false
             while not valid do
-                food.x = math.random(2, width - 1)
-                food.y = math.random(2, height - 1)
+                food.x = math.random(1, grid_size)
+                food.y = math.random(1, grid_size)
                 valid = true
                 for i = 1, #snake do
                     if snake[i].x == food.x and snake[i].y == food.y then
@@ -84,20 +86,18 @@
             end
         end
 
-        -- Lógica de atualização
         local function update()
             if game_over then return end
 
-            -- Calcula a nova posição da cabeça
             local head = snake[1]
             local new_x = head.x + dx
             local new_y = head.y + dy
 
-            -- Colisão com as paredes
-            if new_x <= 1 or new_x >= width or new_y <= 1 or new_y >= height then
-                game_over = true
-                return
-            end
+            -- Atravessar as paredes (efeito Pac-Man)
+            if new_x < 1 then new_x = grid_size end
+            if new_x > grid_size then new_x = 1 end
+            if new_y < 1 then new_y = grid_size end
+            if new_y > grid_size then new_y = 1 end
 
             -- Colisão consigo mesmo
             for i = 1, #snake do
@@ -107,66 +107,57 @@
                 end
             end
 
-            -- Move a cobra (insere nova cabeça)
             table.insert(snake, 1, {x = new_x, y = new_y})
 
-            -- Verifica se comeu
             if new_x == food.x and new_y == food.y then
                 score = score + 10
                 score_el.innerText = "Pontos: " .. tostring(score)
                 spawn_food()
             else
-                -- Remove a ponta da cauda se não comeu
                 table.remove(snake)
             end
         end
 
-        -- Renderização ASCII
         local function render()
-            local output = ""
-            for y = 1, height do
-                for x = 1, width do
-                    local char = " "
-                    
-                    -- Bordas
-                    if y == 1 or y == height then
-                        char = "-"
-                    elseif x == 1 or x == width then
-                        char = "|"
-                    end
+            -- Limpa a tela pintando o fundo de azul escuro
+            ctx.fillStyle = "#001f3f"
+            ctx:fillRect(0, 0, canvas.width, canvas.height)
 
-                    -- Comida
-                    if x == food.x and y == food.y then
-                        char = "*"
-                    end
-
-                    -- Cobra
-                    for i = 1, #snake do
-                        if snake[i].x == x and snake[i].y == y then
-                            if i == 1 then
-                                char = "O" -- Cabeça
-                            else
-                                char = "o" -- Corpo
-                            end
-                        end
-                    end
-
-                    output = output .. char
-                end
-                output = output .. "\n"
-            end
-            
             if game_over then
-                output = output .. "\n      GAME OVER! Recarregue a página."
+                ctx.fillStyle = "#FF4136"
+                ctx.font = "30px sans-serif"
+                ctx:fillText("GAME OVER", 110, 200)
+                ctx.font = "16px sans-serif"
+                ctx:fillText("Recarregue a página para tentar de novo", 50, 240)
+                return
             end
-            
-            game_screen.innerText = output
+
+            -- Desenha a comida (Vermelho)
+            ctx.fillStyle = "#FF4136"
+            ctx:fillRect((food.x - 1) * tile_size, (food.y - 1) * tile_size, tile_size, tile_size)
+
+            -- Desenha a cobra (Verde)
+            for i = 1, #snake do
+                if i == 1 then
+                    ctx.fillStyle = "#3D9970" -- Cabeça mais escura
+                else
+                    ctx.fillStyle = "#2ECC40" -- Corpo mais claro
+                end
+                
+                -- Desenha o quadrado (deixando 1px de borda para ver os gomos)
+                ctx:fillRect((snake[i].x - 1) * tile_size, (snake[i].y - 1) * tile_size, tile_size - 1, tile_size - 1)
+            end
         end
 
-        -- Controles do teclado
-        window:addEventListener("keydown", function(e)
+        -- Controles aprimorados no Document
+        document:addEventListener("keydown", function(e)
             local key = tostring(e.key):lower()
-            -- Evita que a cobra dê ré (não pode virar 180 graus de uma vez)
+            
+            -- Impede a tela de rolar ao usar as setas
+            if key == "arrowup" or key == "arrowdown" or key == "arrowleft" or key == "arrowright" then
+                e:preventDefault()
+            end
+
             if (key == "w" or key == "arrowup") and dy == 0 then
                 dx, dy = 0, -1
             elseif (key == "s" or key == "arrowdown") and dy == 0 then
@@ -178,13 +169,11 @@
             end
         end)
 
-        -- Inicialização
         btn_start:addEventListener("click", function()
             btn_start.style.display = "none"
-            game_screen.style.display = "block"
+            canvas.style.display = "block"
             
-            -- Reseta o jogo
-            snake = { {x = math.floor(width/2), y = math.floor(height/2)} }
+            snake = { {x = math.floor(grid_size/2), y = math.floor(grid_size/2)} }
             dx, dy = 1, 0
             score = 0
             game_over = false
@@ -193,11 +182,10 @@
 
             if interval_id then window:clearInterval(interval_id) end
             
-            -- Loop do jogo rodando a 80ms
             interval_id = window:setInterval(function()
                 update()
                 render()
-            end, 80)
+            end, 100)
         end)
     </script>
 </body>
