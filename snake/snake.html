@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Snake em Lua - Gráficos Reais</title>
+    <title>Snake em Lua - Controles Corrigidos</title>
     <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
     <style>
         body {
@@ -15,6 +15,7 @@
             height: 100vh;
             margin: 0;
             font-family: sans-serif;
+            overflow: hidden; /* Evita qualquer rolagem extra */
         }
         button {
             padding: 10px 20px;
@@ -33,7 +34,6 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
-        /* O Canvas substitui o <pre> ASCII */
         canvas {
             background-color: #001f3f;
             border: 4px solid #7FDBFF;
@@ -46,8 +46,6 @@
 
     <button id="btn-start">Jogar Snake</button>
     <div id="score">Pontos: 0</div>
-    
-    <!-- Tela gráfica de 400x400 pixels -->
     <canvas id="game-canvas" width="400" height="400"></canvas>
 
     <script type="application/lua">
@@ -55,7 +53,6 @@
         local document = js.global.document
         local window = js.global
 
-        -- Configurações do Grid (20x20 blocos de 20 pixels = 400px)
         local grid_size = 20
         local tile_size = 20
         
@@ -93,13 +90,11 @@
             local new_x = head.x + dx
             local new_y = head.y + dy
 
-            -- Atravessar as paredes (efeito Pac-Man)
             if new_x < 1 then new_x = grid_size end
             if new_x > grid_size then new_x = 1 end
             if new_y < 1 then new_y = grid_size end
             if new_y > grid_size then new_y = 1 end
 
-            -- Colisão consigo mesmo
             for i = 1, #snake do
                 if snake[i].x == new_x and snake[i].y == new_y then
                     game_over = true
@@ -119,7 +114,6 @@
         end
 
         local function render()
-            -- Limpa a tela pintando o fundo de azul escuro
             ctx.fillStyle = "#001f3f"
             ctx:fillRect(0, 0, canvas.width, canvas.height)
 
@@ -132,28 +126,23 @@
                 return
             end
 
-            -- Desenha a comida (Vermelho)
             ctx.fillStyle = "#FF4136"
             ctx:fillRect((food.x - 1) * tile_size, (food.y - 1) * tile_size, tile_size, tile_size)
 
-            -- Desenha a cobra (Verde)
             for i = 1, #snake do
                 if i == 1 then
-                    ctx.fillStyle = "#3D9970" -- Cabeça mais escura
+                    ctx.fillStyle = "#3D9970"
                 else
-                    ctx.fillStyle = "#2ECC40" -- Corpo mais claro
+                    ctx.fillStyle = "#2ECC40"
                 end
-                
-                -- Desenha o quadrado (deixando 1px de borda para ver os gomos)
                 ctx:fillRect((snake[i].x - 1) * tile_size, (snake[i].y - 1) * tile_size, tile_size - 1, tile_size - 1)
             end
         end
 
-        -- Controles aprimorados no Document
-        document:addEventListener("keydown", function(e)
+        -- MUDANÇA AQUI: Ouvinte no 'window' em vez de 'document' para garantir captura
+        window:addEventListener("keydown", function(e)
             local key = tostring(e.key):lower()
             
-            -- Impede a tela de rolar ao usar as setas
             if key == "arrowup" or key == "arrowdown" or key == "arrowleft" or key == "arrowright" then
                 e:preventDefault()
             end
@@ -172,6 +161,9 @@
         btn_start:addEventListener("click", function()
             btn_start.style.display = "none"
             canvas.style.display = "block"
+            
+            -- MUDANÇA AQUI: Força o navegador a focar na janela do jogo para os controles funcionarem
+            window:focus()
             
             snake = { {x = math.floor(grid_size/2), y = math.floor(grid_size/2)} }
             dx, dy = 1, 0
