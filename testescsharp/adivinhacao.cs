@@ -4,23 +4,27 @@ class Program
 {
     static void Main()
     {
-        Console.Write("Digite um numero entre 1 e 20: ");
-        int numero = int.Parse(Console.ReadLine());
+        Random gerador = new Random();
+        int numeroCerto = gerador.Next(1, 21); // sorteia um numero entre 1 e 20
+        int chute = 0; // começa com 0 para entrar no loop
 
-        int numeroCerto = 15;
-
-        Console.WriteLine("Você digitou: " + numero);
-        Console.WriteLine("o computador escolheu um numero entre 1 e 20");
-
-        if (numero == numeroCerto)
+        //while: enquanto a condição for verdadeira, o bloco de código dentro das chaves será executado repetidamente
+        while (chute != numeroCerto) // o sinal ! significa "diferente de"
         {
-            Console.WriteLine("Parabéns. Você acertou o número!");
+            Console.Write("Digite um numero entre 1 e 20: ");
+            chute = int.Parse(Console.ReadLine());
+
+            tentativas++; // incrementa o contador de tentativas a cada chute
+            
+            if (chute < numeroCerto)
+            {
+                Console.WriteLine("O número é maior que " + chute);
+            }
+            else if (chute > numeroCerto)
+            {
+                Console.WriteLine("O número é menor que " + chute);
+            }
         }
-        else
-        {
-            Console.WriteLine("Que pena! Você errou o número. O número correto era: " + numeroCerto);
-        }
-        
+        Console.WriteLine("fim de jogo.");
     }
-
 }
