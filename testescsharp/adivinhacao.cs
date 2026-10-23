@@ -2,9 +2,16 @@ using System;
 using System.Collections.Generic; //para usar listas
 
 class Program
-{
+{   
+    static void Cabeçalho()
+    {
+        Console.WriteLine("*********************************");
+        Console.WriteLine("bem vindo ao jogo de adivinhação");
+        Console.WriteLine("*********************************");
+    }
     static void Main()
     {
+        Cabeçalho(); //chama a função Cabeçalho
         Random gerador = new Random();
         int numeroCerto = gerador.Next(1, 21); // sorteia um numero entre 1 e 20
         int chute = 0; // começa com 0 para entrar no loop
@@ -29,9 +36,19 @@ class Program
             {
                 Console.WriteLine("O número é menor que " + chute);
             }
+            else
+            {
+                Console.WriteLine("Parabens, voce acertou");
+                Console.WriteLine("voce precisou de " + chutes.Count + "tentativas.");
+
+                //exibindo chutes
+                Console.WriteLine("Seus chutes foram: ");
+                for (int i = 0; i < chutes.Count; i++)
+                {
+                    Console.WriteLine(chutes[i]);
+                }
+            }
         }
         Console.WriteLine("fim de jogo.");
-        Console.WriteLine("Número de tentativas: " + tentativas);
-        Console.WriteLine("Chutes realizados: " + string.Join(", ", chutes));
     }
 }
