@@ -7,6 +7,7 @@ class Program
         Random gerador = new Random();
         int numeroCerto = gerador.Next(1, 21); // sorteia um numero entre 1 e 20
         int chute = 0; // começa com 0 para entrar no loop
+        int tentativas = 0; // contador de tentativas
 
         //while: enquanto a condição for verdadeira, o bloco de código dentro das chaves será executado repetidamente
         while (chute != numeroCerto) // o sinal ! significa "diferente de"
@@ -26,5 +27,6 @@ class Program
             }
         }
         Console.WriteLine("fim de jogo.");
+        Console.WriteLine("Número de tentativas: " + tentativas);
     }
 }
