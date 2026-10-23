@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic; //para usar listas
 
 class Program
 {
@@ -9,6 +10,8 @@ class Program
         int chute = 0; // começa com 0 para entrar no loop
         int tentativas = 0; // contador de tentativas
 
+        List<int> chutes = new List<int>(); // cria uma lista para armazenar os chutes do jogador
+
         //while: enquanto a condição for verdadeira, o bloco de código dentro das chaves será executado repetidamente
         while (chute != numeroCerto) // o sinal ! significa "diferente de"
         {
@@ -16,6 +19,7 @@ class Program
             chute = int.Parse(Console.ReadLine());
 
             tentativas++; // incrementa o contador de tentativas a cada chute
+            chutes.Add(chute); // adiciona o chute à lista de chutes
             
             if (chute < numeroCerto)
             {
@@ -28,5 +32,6 @@ class Program
         }
         Console.WriteLine("fim de jogo.");
         Console.WriteLine("Número de tentativas: " + tentativas);
+        Console.WriteLine("Chutes realizados: " + string.Join(", ", chutes));
     }
 }
