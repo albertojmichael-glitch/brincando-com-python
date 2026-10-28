@@ -8,7 +8,7 @@ class Produto
 
     public void exibir()
     {
-        Console.WriteLine($"Camisa: {Camisa} | Estoque: {Estoque} | Preço: R$ {preco}");
+        Console.WriteLine($"Camisa: {Nome} | Estoque: {Estoque} | Preço: R$ {preco}");
     }
     public void ColocarNoEstoque(int valor)
     {
