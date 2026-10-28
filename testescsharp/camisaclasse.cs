@@ -31,6 +31,7 @@ class Program
 
         camisa.Nome = "social";
         camisa.Estoque = 15;
+        camisa.preco = 79.90;
 
         camisa.exibir();
 
