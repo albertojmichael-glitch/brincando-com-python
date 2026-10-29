@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+
 
 class Livro
 
@@ -7,8 +9,9 @@ class Livro
     private string _autor;
     private int _paginas;
     private int _anoPublicacao;
+    private int _numeroDeCatalogo;
 
-    public Livro(string nome, string autor, int paginas, int anoPublicacao)
+    public Livro(string nome, string autor, int paginas, int anoPublicacao, int numeroDeCatalogo)
     {
         _nome = nome;
 
@@ -28,6 +31,15 @@ class Livro
         else
         {
             _anoPublicacao = 0;
+        }
+
+        if (numeroDeCatalogo >= 1)
+        {
+            _numeroDeCatalogo = numeroDeCatalogo;
+        }
+        else
+        {
+            _numeroDeCatalogo = 0;
         }
 
 
@@ -52,6 +64,11 @@ class Livro
     public int anoPublicacao()
     {
         return _anoPublicacao;
+    }
+
+    public int numeroDeCatalogo()
+    {
+        return _numeroDeCatalogo;
     }
 
     public void exibirDetalhes()
@@ -85,6 +102,18 @@ class Livro
 
         return novoLivro;
     }
+
+    public static Livro RemoverLivro()
+    {
+
+    }
+
+    public static Livro CatalogarLivro()
+    {
+
+    }
+
+
     
 }
 
@@ -100,6 +129,56 @@ class Program
     static void Main()
     {
         Cabeçalho();
+        bool continuar = true;
+
+        List<> livrosListados = new List<>();
+
+        string opcao = "";
+
+        while (continuar)
+        {
+            Console.Clear();
+            Cabeçalho();
+
+            Console.WriteLine("Escolha uma opção: ");
+            Console.WriteLine("1 - criar livro");
+            Console.WriteLine("2 - ver os livros já existentes");
+            Console.WriteLine("3 - pegar livro");
+            Console.WriteLine("0 - sair");
+            Console.Write("Digite a opção: ");
+
+            string opcao = Console.ReadLine();
+
+            if (opcao == "0")
+            {
+                Console.WriteLine("Encerrando...")
+                break;
+            }
+
+            if (opcao != "1" && opcao != "2" && opcao != "3")
+            {
+                Console.WriteLine("opção invalida");
+                Console.ReadKey();
+                continue;
+            }
+
+            if (opcao == "1")
+            {
+                try
+                {
+
+                }
+            }
+
+            if (opcao == "2")
+            {
+                try
+                {
+
+                }
+            }
+
+        }
         
 
     }
