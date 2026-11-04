@@ -54,34 +54,34 @@ class Livro
 
     public static Livro AdicionarLivro()
     {
-        Console.Write("Digite o nome do livro: ");
+        Console.Write("digite o nome do livro: ");
         string nome = Console.ReadLine();
 
-        Console.Write("Digite o autor: ");
+        Console.Write("digite o autor: ");
         string autor = Console.ReadLine();
 
-        Console.Write("Digite o número de páginas: ");
+        Console.Write("digite o número de páginas: ");
         int paginas = int.Parse(Console.ReadLine());
 
-        Console.Write("Digite o ano de publicação: ");
+        Console.Write("digite o ano de publicação: ");
         int anoPublicacao = int.Parse(Console.ReadLine());
 
         if (anoPublicacao > 2027)
         {
-            Console.WriteLine("Ano inválido!");
+            Console.WriteLine("ano inválido");
             return null;
         }
 
         Livro novoLivro = new Livro(nome, autor, paginas, anoPublicacao);
 
-        Console.WriteLine("Livro adicionado com sucesso!");
+        Console.WriteLine("livro adicionado com sucesso");
 
         return novoLivro;
     }
 
     public static Livro RemoverLivro(List<Livro> livrosListados)
     {
-        Console.Write("Digite o número de catálogo: ");
+        Console.Write("digite o número de catálogo: ");
         int numero = int.Parse(Console.ReadLine());
 
         Livro livro = livrosListados.Find(l => l.NumeroDeCatalogo == numero);
@@ -164,7 +164,7 @@ class Program
                 }
                 catch
                 {
-                    Console.WriteLine("Erro ao cadastrar livro!");
+                    Console.WriteLine("erro ao cadastrar livro");
                 }
 
                 Console.ReadKey();
@@ -174,7 +174,7 @@ class Program
             {
                 if (livrosListados.Count == 0)
                 {
-                    Console.WriteLine("Nenhum livro cadastrado.");
+                    Console.WriteLine("nenhum livro cadastrado.");
                 }
                 else
                 {
@@ -197,16 +197,16 @@ class Program
 
                     if (removido != null)
                     {
-                        Console.WriteLine($"Livro {removido.obterNome()} removido!");
+                        Console.WriteLine($"livro {removido.obterNome()} pego");
                     }
                     else
                     {
-                        Console.WriteLine("Livro não encontrado!");
+                        Console.WriteLine("livro não encontrado");
                     }
                 }
                 catch
                 {
-                    Console.WriteLine("Número de catálogo inválido!");
+                    Console.WriteLine("número de catálogo inválido");
                 }
 
                 Console.ReadKey();
