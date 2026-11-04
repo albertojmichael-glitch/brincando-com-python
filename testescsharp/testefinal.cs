@@ -11,39 +11,15 @@ class Livro
     private int _anoPublicacao;
     private int _numeroDeCatalogo;
 
-    public Livro(string nome, string autor, int paginas, int anoPublicacao, int numeroDeCatalogo)
+    public Livro(string nome, string autor, int paginas, int anoPublicacao)
     {
         _nome = nome;
+        _autor = autor;
 
-        if (paginas > 0)
-        {
-            _paginas = paginas;
-        }
-        else
-        {
-            _paginas = 0;
-        }
+        _numeroDeCatalogo = GerarNumeroCatalogo();
 
-        if (anoPublicacao <=2027)
-        {
-            _anoPublicacao = anoPublicacao;
-        }
-        else
-        {
-            _anoPublicacao = 0;
-        }
-
-        if (numeroDeCatalogo >= 1)
-        {
-            _numeroDeCatalogo = numeroDeCatalogo;
-        }
-        else
-        {
-            _numeroDeCatalogo = 0;
-        }
-
-
-        
+        _paginas = paginas > 0 ? paginas : 0;
+        _anoPublicacao = anoPublicacao <= 2027 ? anoPublicacao : 0;
     }
 
     public string obterNome()
@@ -66,9 +42,9 @@ class Livro
         return _anoPublicacao;
     }
 
-    public int numeroDeCatalogo()
+    public int NumeroDeCatalogo
     {
-        return _numeroDeCatalogo;
+        get { return _numeroDeCatalogo; }
     }
 
     public void exibirDetalhes()
@@ -78,21 +54,21 @@ class Livro
 
     public static Livro AdicionarLivro()
     {
-        Console.WriteLine("Digite o nome do livro: ");
+        Console.Write("Digite o nome do livro: ");
         string nome = Console.ReadLine();
 
-        Console.WriteLine("Digite o autor:");
+        Console.Write("Digite o autor: ");
         string autor = Console.ReadLine();
 
-        Console.WriteLine("Digite o número de páginas:");
+        Console.Write("Digite o número de páginas: ");
         int paginas = int.Parse(Console.ReadLine());
 
-        Console.WriteLine("Digite o ano de publicação:");
+        Console.Write("Digite o ano de publicação: ");
         int anoPublicacao = int.Parse(Console.ReadLine());
 
         if (anoPublicacao > 2027)
         {
-            Console.WriteLine("Erro: o ano não pode ser maior que 2027!");
+            Console.WriteLine("Ano inválido!");
             return null;
         }
 
@@ -103,16 +79,31 @@ class Livro
         return novoLivro;
     }
 
-    public static Livro RemoverLivro()
+    public static Livro RemoverLivro(List<Livro> livrosListados)
     {
+        Console.Write("Digite o número de catálogo: ");
+        int numero = int.Parse(Console.ReadLine());
 
+        Livro livro = livrosListados.Find(l => l.NumeroDeCatalogo == numero);
+
+        if (livro != null)
+        {
+            livrosListados.Remove(livro);
+            return livro;
+        }
+
+        return null;
     }
 
-    public static Livro CatalogarLivro()
+    private static int _proximoCatalogo = 100;
+
+    private static int GerarNumeroCatalogo()
     {
+        int numero = _proximoCatalogo;
+        _proximoCatalogo += 100;
 
+        return numero;
     }
-
 
     
 }
@@ -131,9 +122,7 @@ class Program
         Cabeçalho();
         bool continuar = true;
 
-        List<> livrosListados = new List<>();
-
-        string opcao = "";
+        List<Livro> livrosListados = new List<Livro>();
 
         while (continuar)
         {
@@ -151,7 +140,7 @@ class Program
 
             if (opcao == "0")
             {
-                Console.WriteLine("Encerrando...")
+                Console.WriteLine("Encerrando...");
                 break;
             }
 
@@ -166,16 +155,61 @@ class Program
             {
                 try
                 {
+                    Livro novoLivro = Livro.AdicionarLivro();
 
+                    if (novoLivro != null)
+                    {
+                        livrosListados.Add(novoLivro);
+                    }
                 }
+                catch
+                {
+                    Console.WriteLine("Erro ao cadastrar livro!");
+                }
+
+                Console.ReadKey();
             }
 
             if (opcao == "2")
             {
+                if (livrosListados.Count == 0)
+                {
+                    Console.WriteLine("Nenhum livro cadastrado.");
+                }
+                else
+                {
+                    foreach (Livro livro in livrosListados)
+                    {
+                        livro.exibirDetalhes();
+                        Console.WriteLine($"Catálogo: {livro.numeroDeCatalogo()}");
+                        Console.WriteLine("--------------------------------");
+                    }
+                }
+
+                Console.ReadKey();
+            }
+
+            if (opcao == "3")
+            {
                 try
                 {
+                    Livro removido = Livro.RemoverLivro(livrosListados);
 
+                    if (removido != null)
+                    {
+                        Console.WriteLine($"Livro {removido.obterNome()} removido!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Livro não encontrado!");
+                    }
                 }
+                catch
+                {
+                    Console.WriteLine("Número de catálogo inválido!");
+                }
+
+                Console.ReadKey();
             }
 
         }
