@@ -181,7 +181,7 @@ class Program
                     foreach (Livro livro in livrosListados)
                     {
                         livro.exibirDetalhes();
-                        Console.WriteLine($"Catálogo: {livro.numeroDeCatalogo()}");
+                        Console.WriteLine($"Catálogo: {livro.NumeroDeCatalogo}");
                         Console.WriteLine("--------------------------------");
                     }
                 }
