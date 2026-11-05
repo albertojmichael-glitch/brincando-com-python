@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 
 class Livro
-
 {
     private string _nome;
     private string _autor;
